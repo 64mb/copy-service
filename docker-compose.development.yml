@@ -1,0 +1,206 @@
+version: '3.7'
+
+services:
+  copy_service:
+    extends:
+      service: copy_service
+      file: docker-compose.yml
+    container_name: copy_service
+    build:
+      context: ./
+      dockerfile: ./docker/development.dockerfile
+    image: copy_service:dev
+    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.copy_service.loadbalancer.server.port=3000
+      - traefik.http.routers.copy_service.rule=Host(`copy.${DOMAIN:?lost DOMAIN variable}`)
+    environment:
+      - NODE_ENV=development
+
+      - REGION=dev
+
+      - EU_S3_ENDPOINT=minio_eu
+      - EU_S3_BUCKET=dev-eu
+      - EU_S3_PORT=9000
+      - EU_S3_ACCESS_KEY=${EU_S3_ACCESS_KEY:?lost EU_S3_ACCESS_KEY variable}
+      - EU_S3_SECRET_KEY=${EU_S3_SECRET_KEY:?lost EU_S3_SECRET_KEY variable}
+
+      - RU_S3_ENDPOINT=minio_ru
+      - RU_S3_BUCKET=dev-ru
+      - RU_S3_PORT=9000
+      - RU_S3_ACCESS_KEY=${RU_S3_ACCESS_KEY:?lost RU_S3_ACCESS_KEY variable}
+      - RU_S3_SECRET_KEY=${RU_S3_SECRET_KEY:?lost RU_S3_SECRET_KEY variable}
+
+      - CN_S3_ENDPOINT=minio_cn
+      - CN_S3_BUCKET=dev-cn
+      - CN_S3_PORT=9000
+      - CN_S3_ACCESS_KEY=${CN_S3_ACCESS_KEY:?lost CN_S3_ACCESS_KEY variable}
+      - CN_S3_SECRET_KEY=${CN_S3_SECRET_KEY:?lost CN_S3_SECRET_KEY variable}
+
+      - US_S3_ENDPOINT=minio_us
+      - US_S3_BUCKET=dev-us
+      - US_S3_PORT=9000
+      - US_S3_ACCESS_KEY=${US_S3_ACCESS_KEY:?lost US_S3_ACCESS_KEY variable}
+      - US_S3_SECRET_KEY=${US_S3_SECRET_KEY:?lost US_S3_SECRET_KEY variable}
+
+      - DEBUG=${DEBUG}
+    volumes:
+      - ./:/home/node/app
+      - node_copy_service:/home/node/app/node_modules
+    networks:
+      - web
+      - local
+
+  traefik:
+    image: traefik:2.5.3
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      - '--api=true'
+      - '--providers.docker=true'
+      - '--providers.docker.network=${COMPOSE_PROJECT_NAME}_web'
+      - '--providers.docker.watch=true'
+      - '--providers.docker.exposedbydefault=false'
+      - '--entrypoints.web.address=:80'
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.api.rule=Host(`traefik.${DOMAIN:?lost DOMAIN variable}`)
+      - traefik.http.routers.api.service=api@internal
+    ports:
+      - 80:80
+    volumes:
+      - "${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock:ro"
+    networks:
+      - web
+      - local
+
+  minio_eu:
+    extends:
+      service: minio
+      file: docker-compose.yml
+    container_name: minio_eu
+    volumes:
+      - minio_eu_storage_data:/data
+    environment:
+      - MINIO_REGION_NAME=eu
+      - MINIO_BROWSER_REDIRECT_URL=http://console-eu.${DOMAIN:?lost DOMAIN variable}
+      # - MINIO_SERVER_URL=http://s3-eu.${DOMAIN:?lost DOMAIN variable}
+      - MINIO_ROOT_USER=${EU_S3_ACCESS_KEY:?lost EU_S3_ACCESS_KEY variable}
+      - MINIO_ROOT_PASSWORD=${EU_S3_SECRET_KEY:?lost EU_S3_SECRET_KEY variable}
+    labels:
+      - traefik.enable=true
+
+      # console
+      - traefik.http.routers.minio_eu.rule=Host(`console-eu.${DOMAIN:?lost DOMAIN variable}`)
+      - traefik.http.routers.minio_eu.service=minio_eu
+      - traefik.http.services.minio_eu.loadbalancer.server.port=9001
+
+      # s3
+      - traefik.http.routers.s3_eu.rule=Host(`s3-eu.${DOMAIN:?lost DOMAIN variable}`)
+      - traefik.http.routers.s3_eu.service=s3_eu
+      - traefik.http.services.s3_eu.loadbalancer.server.port=9000
+      - traefik.http.services.s3_eu.loadbalancer.passhostheader=true
+    networks:
+      - web
+      - local
+
+  minio_ru:
+    extends:
+      service: minio
+      file: docker-compose.yml
+    container_name: minio_ru
+    volumes:
+      - minio_ru_storage_data:/data
+    environment:
+      - MINIO_REGION_NAME=ru
+      - MINIO_BROWSER_REDIRECT_URL=http://console-ru.${DOMAIN:?lost DOMAIN variable}
+      - MINIO_ROOT_USER=${RU_S3_ACCESS_KEY:?lost RU_S3_ACCESS_KEY variable}
+      - MINIO_ROOT_PASSWORD=${RU_S3_SECRET_KEY:?lost RU_S3_SECRET_KEY variable}
+    labels:
+      - traefik.enable=true
+
+      # console
+      - traefik.http.routers.minio_ru.rule=Host(`console-ru.${DOMAIN:?lost DOMAIN variable}`)
+      - traefik.http.routers.minio_ru.service=minio_ru
+      - traefik.http.services.minio_ru.loadbalancer.server.port=9001
+
+      # s3
+      - traefik.http.routers.s3_ru.rule=Host(`s3-ru.${DOMAIN:?lost DOMAIN variable}`)
+      - traefik.http.routers.s3_ru.service=s3_ru
+      - traefik.http.services.s3_ru.loadbalancer.server.port=9000
+      - traefik.http.services.s3_ru.loadbalancer.passhostheader=true
+    networks:
+      - web
+      - local
+
+  minio_cn:
+    extends:
+      service: minio
+      file: docker-compose.yml
+    container_name: minio_cn
+    volumes:
+      - minio_cn_storage_data:/data
+    environment:
+      - MINIO_REGION_NAME=cn
+      - MINIO_BROWSER_REDIRECT_URL=http://console-cn.${DOMAIN:?lost DOMAIN variable}
+      - MINIO_ROOT_USER=${CN_S3_ACCESS_KEY:?lost CN_S3_ACCESS_KEY variable}
+      - MINIO_ROOT_PASSWORD=${CN_S3_SECRET_KEY:?lost CN_S3_SECRET_KEY variable}
+    labels:
+      - traefik.enable=true
+
+      # console
+      - traefik.http.routers.minio_cn.rule=Host(`console-cn.${DOMAIN:?lost DOMAIN variable}`)
+      - traefik.http.routers.minio_cn.service=minio_cn
+      - traefik.http.services.minio_cn.loadbalancer.server.port=9001
+
+      # s3
+      - traefik.http.routers.s3_cn.rule=Host(`s3-cn.${DOMAIN:?lost DOMAIN variable}`)
+      - traefik.http.routers.s3_cn.service=s3_cn
+      - traefik.http.services.s3_cn.loadbalancer.server.port=9000
+      - traefik.http.services.s3_cn.loadbalancer.passhostheader=true
+    networks:
+      - web
+      - local
+
+  minio_us:
+    extends:
+      service: minio
+      file: docker-compose.yml
+    container_name: minio_us
+    volumes:
+      - minio_us_storage_data:/data
+    environment:
+      - MINIO_REGION_NAME=us
+      - MINIO_BROWSER_REDIRECT_URL=http://console-us.${DOMAIN:?lost DOMAIN variable}
+      - MINIO_ROOT_USER=${US_S3_ACCESS_KEY:?lost US_S3_ACCESS_KEY variable}
+      - MINIO_ROOT_PASSWORD=${US_S3_SECRET_KEY:?lost US_S3_SECRET_KEY variable}
+    labels:
+      - traefik.enable=true
+
+      # console
+      - traefik.http.routers.minio_us.rule=Host(`console-us.${DOMAIN:?lost DOMAIN variable}`)
+      - traefik.http.routers.minio_us.service=minio_us
+      - traefik.http.services.minio_us.loadbalancer.server.port=9001
+
+      # s3
+      - traefik.http.routers.s3_us.rule=Host(`s3-us.${DOMAIN:?lost DOMAIN variable}`)
+      - traefik.http.routers.s3_us.service=s3_us
+      - traefik.http.services.s3_us.loadbalancer.server.port=9000
+      - traefik.http.services.s3_us.loadbalancer.passhostheader=true
+    networks:
+      - web
+      - local
+
+volumes:
+  minio_eu_storage_data:
+  minio_ru_storage_data:
+  minio_cn_storage_data:
+  minio_us_storage_data:
+  node_copy_service:
+
+networks:
+  web:
+    driver: bridge
+  local:
+    driver: bridge

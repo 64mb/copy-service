@@ -1,0 +1,14 @@
+node_modules
+.git
+.idea
+.vscode
+.nyc_output
+.directory
+
+npm-debug.log
+
+.gitignore
+.env
+
+*.dockerfile
+docker-compose.yml

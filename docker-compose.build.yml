@@ -1,0 +1,7 @@
+version: '3.7'
+services:
+  mkd_portal:
+    image: copy_service:${VERSION:?lost VERSION variable}
+    build:
+      context: ./
+      dockerfile: ./docker/production.dockerfile

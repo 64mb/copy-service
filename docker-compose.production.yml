@@ -1,0 +1,33 @@
+version: '3.7'
+
+services:
+  copy_service:
+    extends:
+      service: copy_service
+      file: docker-compose.yml
+    container_name: copy_service
+    image: ${IMAGE_REGISTRY:?lost IMAGE_REGISTRY variable}
+    restart: always
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.copy_service.loadbalancer.server.port=3000
+      - traefik.http.routers.copy_service.rule=Host(`copy.${DOMAIN:?lost DOMAIN variable}`)
+      - traefik.http.routers.copy_service.tls=true
+      - traefik.http.routers.copy_service.tls.certresolver=traefik
+    environment:
+      - NODE_ENV=production
+
+      - REGION=${REGION:?lost REGION variable}
+    logging:
+      driver: fluentd
+    networks:
+      - web
+    volumes:
+      - copy-queue-db:/home/node/app/db
+
+networks:
+  web:
+    driver: bridge
+
+volumes:
+  copy-queue-db:

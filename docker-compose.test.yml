@@ -1,0 +1,98 @@
+version: '3.7'
+
+services:
+  copy_service:
+    extends:
+      service: copy_service
+      file: docker-compose.yml
+    build:
+      context: ./
+      dockerfile: ./docker/test.dockerfile
+    image: copy_service:test
+    restart: "no"
+    command: npx tap --bail --jobs=1 --reporter=list --timeout=120 --no-coverage test/**/*.test.js
+    depends_on:
+      - minio_eu
+      - minio_ru
+      - minio_cn
+      - minio_us
+    environment:
+      - NODE_ENV=test
+
+      - LOG_LEVEL=error
+
+      - EU_S3_ENDPOINT=minio_eu
+      - EU_S3_BUCKET=dev-eu
+      - EU_S3_PORT=9000
+      - EU_S3_ACCESS_KEY=${EU_S3_ACCESS_KEY:?lost EU_S3_ACCESS_KEY variable}
+      - EU_S3_SECRET_KEY=${EU_S3_SECRET_KEY:?lost EU_S3_SECRET_KEY variable}
+
+      - RU_S3_ENDPOINT=minio_ru
+      - RU_S3_BUCKET=dev-ru
+      - RU_S3_PORT=9000
+      - RU_S3_ACCESS_KEY=${RU_S3_ACCESS_KEY:?lost RU_S3_ACCESS_KEY variable}
+      - RU_S3_SECRET_KEY=${RU_S3_SECRET_KEY:?lost RU_S3_SECRET_KEY variable}
+
+      - CN_S3_ENDPOINT=minio_cn
+      - CN_S3_BUCKET=dev-cn
+      - CN_S3_PORT=9000
+      - CN_S3_ACCESS_KEY=${CN_S3_ACCESS_KEY:?lost CN_S3_ACCESS_KEY variable}
+      - CN_S3_SECRET_KEY=${CN_S3_SECRET_KEY:?lost CN_S3_SECRET_KEY variable}
+
+      - US_S3_ENDPOINT=minio_us
+      - US_S3_BUCKET=dev-us
+      - US_S3_PORT=9000
+      - US_S3_ACCESS_KEY=${US_S3_ACCESS_KEY:?lost US_S3_ACCESS_KEY variable}
+      - US_S3_SECRET_KEY=${US_S3_SECRET_KEY:?lost US_S3_SECRET_KEY variable}
+
+      - REGION=test
+    networks:
+      - local
+
+  minio_eu:
+    extends:
+      service: minio
+      file: docker-compose.yml
+    container_name: minio_eu
+    environment:
+      MINIO_ROOT_USER: ${EU_S3_ACCESS_KEY:?lost EU_S3_ACCESS_KEY variable}
+      MINIO_ROOT_PASSWORD: ${EU_S3_SECRET_KEY:?lost EU_S3_SECRET_KEY variable}
+    networks:
+      - local
+
+  minio_ru:
+    extends:
+      service: minio
+      file: docker-compose.yml
+    container_name: minio_ru
+    environment:
+      MINIO_ROOT_USER: ${RU_S3_ACCESS_KEY:?lost RU_S3_ACCESS_KEY variable}
+      MINIO_ROOT_PASSWORD: ${RU_S3_SECRET_KEY:?lost RU_S3_SECRET_KEY variable}
+    networks:
+      - local
+
+  minio_cn:
+    extends:
+      service: minio
+      file: docker-compose.yml
+    container_name: minio_cn
+    environment:
+      MINIO_ROOT_USER: ${CN_S3_ACCESS_KEY:?lost CN_S3_ACCESS_KEY variable}
+      MINIO_ROOT_PASSWORD: ${CN_S3_SECRET_KEY:?lost CN_S3_SECRET_KEY variable}
+    networks:
+      - local
+
+  minio_us:
+    extends:
+      service: minio
+      file: docker-compose.yml
+    container_name: minio_us
+    environment:
+      MINIO_ROOT_USER: ${US_S3_ACCESS_KEY:?lost US_S3_ACCESS_KEY variable}
+      MINIO_ROOT_PASSWORD: ${US_S3_SECRET_KEY:?lost US_S3_SECRET_KEY variable}
+    networks:
+      - local
+
+networks:
+  local:
+    driver: bridge

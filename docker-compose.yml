@@ -1,0 +1,37 @@
+version: '3.7'
+
+services:
+  copy_service:
+    environment:
+      - HOST_PORT=3000
+      - HOST_IP=0.0.0.0
+
+      - JWT_SECRET=${JWT_SECRET:?lost JWT_SECRET variable}
+
+      - EU_S3_ENDPOINT=${EU_S3_ENDPOINT}
+      - EU_S3_ACCESS_KEY=${EU_S3_ACCESS_KEY}
+      - EU_S3_SECRET_KEY=${EU_S3_SECRET_KEY}
+      - EU_S3_BUCKET=${EU_S3_BUCKET}
+
+      - RU_S3_ENDPOINT=${RU_S3_ENDPOINT}
+      - RU_S3_ACCESS_KEY=${RU_S3_ACCESS_KEY}
+      - RU_S3_SECRET_KEY=${RU_S3_SECRET_KEY}
+      - RU_S3_BUCKET=${RU_S3_BUCKET}
+
+      - US_S3_ENDPOINT=${US_S3_ENDPOINT}
+      - US_S3_ACCESS_KEY=${US_S3_ACCESS_KEY}
+      - US_S3_SECRET_KEY=${US_S3_SECRET_KEY}
+      - US_S3_BUCKET=${US_S3_BUCKET}
+
+      - CN_S3_ENDPOINT=${CN_S3_ENDPOINT}
+      - CN_S3_ACCESS_KEY=${CN_S3_ACCESS_KEY}
+      - CN_S3_SECRET_KEY=${CN_S3_SECRET_KEY}
+      - CN_S3_BUCKET=${CN_S3_BUCKET}
+
+  minio:
+    image: minio/minio:RELEASE.2022-03-08T22-28-51Z
+    restart: unless-stopped
+    environment:
+      - MINIO_BROWSER=on
+    command: ['server', '/data', '--address', ':9000', '--console-address', ':9001']
+
